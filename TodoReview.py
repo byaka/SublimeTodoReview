@@ -286,6 +286,18 @@ class TodoReviewRender(sublime_plugin.TextCommand):
 			.replace('%l', str(item['line']))
 
 class TodoReviewResults(sublime_plugin.TextCommand):
+	def focusView(self, view, line):
+		if view.is_loading():
+			sublime.set_timeout(lambda:self.focusView(view, line), 50)
+			return
+		window=view.window()
+		_selection=view.sel()
+		_selection.clear()
+		_region=sublime.Region(view.text_point(line, 0))
+		_selection.add(_region)
+		view.show_at_center(_region)
+		window.focus_view(view)
+
 	def run(self, edit, **args):
 		self.settings = self.view.settings()
 		if not self.settings.get('review_results'):
@@ -296,9 +308,12 @@ class TodoReviewResults(sublime_plugin.TextCommand):
 			result = self.view.get_regions('results')[index]
 			coords = '{0},{1}'.format(result.a, result.b)
 			i = self.settings.get('review_results')[coords]
-			p = "%f:%l".replace('%f', i['file']).replace('%l', str(i['line']))
-			view = window.open_file(p, sublime.ENCODED_POSITION)
-			window.focus_view(view)
+			#~ NOTE: adds compatibilty fith paths, that contains `:` symbol
+			view = window.open_file(i['file'])
+			self.focusView(view, i['line']-1)
+			# p = "%f:%l".replace('%f', i['file']).replace('%l', str(i['line']))
+			# view = window.open_file(p, sublime.ENCODED_POSITION)
+			# window.focus_view(view)
 			return
 		if args.get('refresh'):
 			args = self.settings.get('review_args')
